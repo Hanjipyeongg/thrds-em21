@@ -3,14 +3,19 @@
 
 Usage:
   python3 render.py data.json            # render every row
-  python3 render.py data.json --only EMMA-2026W41-1-1
+  python3 render.py data.json --only EMMA-2026W41-1-1      # all images of one post
+  python3 render.py data.json --only EMMA-2026W41-1-1-2    # one image of a post
 
 data.json is either a list of objects keyed by the sheet's column names,
 or the raw sheet values: [[header...], [row...], ...].
 
-Output: images/<Minggu ke>/<Post ID>.png (1080x1350) plus manifest.json in
-the same folder. Each manifest entry has the raw GitHub URL to give Buffer,
-and flags rows with missing fields or text that does not fit.
+One row = one image. A post can have 1-4 images: give each row of that post
+the same Post ID and a different "Urutan gambar" (1-4). An empty
+"Urutan gambar" counts as 1.
+
+Output: images/<Minggu ke>/<Post ID>-<Urutan gambar>.png (1080x1350) plus
+manifest.json in the same folder. Each manifest entry has the raw GitHub URL
+to give Buffer, and flags rows with missing fields or text that does not fit.
 """
 import argparse, html, json, pathlib, sys
 
@@ -44,6 +49,10 @@ def load_rows(path):
     return [{k: ("" if v is None else str(v).strip()) for k, v in r.items()} for r in rows if any(r.values())]
 
 
+def image_id(row):
+    return f"{row.get('Post ID', '')}-{row.get('Urutan gambar', '') or '1'}"
+
+
 def fill(template, row):
     out = template
     for key, val in row.items():
@@ -56,23 +65,36 @@ def fill(template, row):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("data")
-    ap.add_argument("--only", help="render a single Post ID")
+    ap.add_argument("--only", help="render one Post ID (all its images) or one image id <Post ID>-<urutan>")
     args = ap.parse_args()
 
     rows = load_rows(args.data)
+    for r in rows:
+        r["Urutan gambar"] = r.get("Urutan gambar", "") or "1"
     if args.only:
-        rows = [r for r in rows if r.get("Post ID") == args.only]
+        rows = [r for r in rows
+                if r.get("Post ID") == args.only or image_id(r) == args.only]
 
     from playwright.sync_api import sync_playwright
 
     results = []
+    seen = set()
     with sync_playwright() as p:
         browser = p.chromium.launch()
         page = browser.new_page(viewport={"width": 1080, "height": 1350})
         for row in rows:
             pid = row.get("Post ID", "")
+            n = row["Urutan gambar"]
+            iid = image_id(row)
             layout = row.get("Layout", "").strip().lower()
-            entry = {"post_id": pid, "layout": layout, "ok": False}
+            entry = {"post_id": pid, "urutan": n, "image_id": iid, "layout": layout, "ok": False}
+            if n not in {"1", "2", "3", "4"}:
+                entry["error"] = f"Urutan gambar harus 1-4, bukan {n!r}"
+                results.append(entry); continue
+            if iid in seen:
+                entry["error"] = f"Urutan gambar {n} dipakai dua kali untuk {pid}"
+                results.append(entry); continue
+            seen.add(iid)
             if layout not in REQUIRED:
                 entry["error"] = f"Layout tidak dikenal: {row.get('Layout')!r}"
                 results.append(entry); continue
@@ -95,11 +117,11 @@ def main():
             week = row["Minggu ke"]
             out_dir = ROOT / "images" / week
             out_dir.mkdir(parents=True, exist_ok=True)
-            out = out_dir / f"{pid}.png"
+            out = out_dir / f"{iid}.png"
             page.screenshot(path=str(out), clip={"x": 0, "y": 0, "width": 1080, "height": 1350})
             tmp.unlink()
             entry.update(ok=not overflow, file=str(out.relative_to(ROOT)),
-                         url=f"{REPO_RAW}/images/{week}/{pid}.png")
+                         url=f"{REPO_RAW}/images/{week}/{iid}.png")
             if overflow:
                 entry["error"] = "Teks terlalu panjang dan menabrak footer; persingkat lalu render ulang"
             results.append(entry)
@@ -112,8 +134,10 @@ def main():
     for folder, entries in by_week.items():
         manifest = ROOT / folder / "manifest.json"
         existing = json.loads(manifest.read_text()) if manifest.exists() else []
-        keep = [e for e in existing if e["post_id"] not in {x["post_id"] for x in entries}]
-        manifest.write_text(json.dumps(keep + entries, ensure_ascii=False, indent=1), encoding="utf-8")
+        new_ids = {x["image_id"] for x in entries}
+        keep = [e for e in existing if e.get("image_id", e["post_id"]) not in new_ids]
+        merged = sorted(keep + entries, key=lambda e: (e["post_id"], e.get("urutan", "1")))
+        manifest.write_text(json.dumps(merged, ensure_ascii=False, indent=1), encoding="utf-8")
 
     print(json.dumps(results, ensure_ascii=False, indent=1))
     sys.exit(0 if all(r["ok"] for r in results) else 1)
