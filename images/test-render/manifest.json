@@ -1,0 +1,20 @@
+[
+ {
+  "post_id": "TES-1",
+  "urutan": "1",
+  "image_id": "TES-1-1",
+  "layout": "checklist",
+  "ok": true,
+  "file": "images/test-render/TES-1-1.png",
+  "url": "https://raw.githubusercontent.com/Hanjipyeongg/thrds-em21/main/images/test-render/TES-1-1.png"
+ },
+ {
+  "post_id": "TES-1",
+  "urutan": "2",
+  "image_id": "TES-1-2",
+  "layout": "perbandingan",
+  "ok": true,
+  "file": "images/test-render/TES-1-2.png",
+  "url": "https://raw.githubusercontent.com/Hanjipyeongg/thrds-em21/main/images/test-render/TES-1-2.png"
+ }
+]
