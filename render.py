@@ -43,6 +43,11 @@ REQUIRED = {
     "contoh": COMMON + ["Label kiri", "Label kanan"]
     + [f"Kiri {i}" for i in range(1, 5)] + [f"Kanan {i}" for i in range(1, 5)],
     "kasus": COMMON + [f"Poin {i}" for i in range(1, 6)],
+    # Layout bahasa Inggris. Tulis *kata* di sel untuk memberi sorotan; "Tips" opsional.
+    "frasa": COMMON + [f"Poin {i}" for i in range(1, 6)],
+    "pola": COMMON + ["Rumus"]
+    + [f"Kiri {i}" for i in range(1, 5)] + [f"Kanan {i}" for i in range(1, 5)],
+    "dialog": COMMON + [f"Poin {i}" for i in range(1, 6)],
 }
 
 
@@ -64,7 +69,10 @@ def fill(template, row):
     out = re.sub(r"%IF ([^%]+)%(.*?)%END%",
                  lambda m: m.group(2) if row.get(m.group(1)) else "", template, flags=re.S)
     for key, val in row.items():
-        out = out.replace("{{" + key + "}}", html.escape(val))
+        esc = html.escape(val)
+        # Slot {{*Kolom}} mengubah *kata* menjadi sorotan; slot biasa menampilkan teks apa adanya.
+        out = out.replace("{{*" + key + "}}", re.sub(r"\*(.+?)\*", r"<mark>\1</mark>", esc))
+        out = out.replace("{{" + key + "}}", esc)
     for key, svg in ICONS.items():
         out = out.replace(key, svg)
     return out

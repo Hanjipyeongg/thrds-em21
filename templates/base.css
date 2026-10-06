@@ -84,3 +84,23 @@ html,body{margin:0;padding:0}
 .outcome{margin-top:8px;margin-bottom:26px;background:var(--ink);color:#FFFFFF;border-radius:22px;padding:22px 28px}
 .outcome .cap{color:var(--accent)}
 .outcome .txt{font-size:29px;font-weight:700;line-height:1.35}
+
+/* Layout bahasa Inggris: Frasa, Pola, Dialog */
+mark{background:var(--accent);color:var(--ink);padding:0 8px;border-radius:8px}
+.phrase{margin-top:30px;border:3px solid var(--ink);border-radius:26px;padding:30px 32px}
+.phrase .en{font-size:54px;font-weight:800;line-height:1.2;letter-spacing:-1px}
+.phrase .idn{margin-top:14px;font-size:29px;font-weight:500;color:var(--muted)}
+.cap2{margin-top:28px;font-size:20px;font-weight:800;letter-spacing:2px;color:var(--muted)}
+.ex{margin-top:12px;display:flex;flex-direction:column;gap:12px}
+.ex div{background:var(--card);border-radius:18px;padding:18px 24px;font-size:28px;font-weight:600;line-height:1.35}
+.uc .tips{margin-top:22px}
+.pat{margin-top:22px;display:flex;flex-direction:column;border:2px solid var(--ink);border-radius:22px;overflow:hidden}
+.pat .r{display:grid;grid-template-columns:200px minmax(0,1fr);border-bottom:2px solid var(--line)}
+.pat .r:last-child{border-bottom:none}
+.pat .k{background:var(--card);padding:20px 22px;font-size:22px;font-weight:800;letter-spacing:1px;display:flex;align-items:center}
+.pat .v{padding:20px 24px;font-size:29px;font-weight:600;line-height:1.3}
+.chat{margin-top:24px;display:flex;flex-direction:column;gap:14px}
+.bub{max-width:78%;padding:18px 26px;font-size:29px;font-weight:600;line-height:1.35;border-radius:26px}
+.bub.a{align-self:flex-start;background:var(--card);border-bottom-left-radius:6px}
+.bub.b{align-self:flex-end;background:var(--ink);color:#FFFFFF;border-bottom-right-radius:6px}
+.chat + .tips{margin-top:24px}
