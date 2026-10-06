@@ -17,7 +17,7 @@ Output: images/<Minggu ke>/<Post ID>-<Urutan gambar>.png (1080x1350) plus
 manifest.json in the same folder. Each manifest entry has the raw GitHub URL
 to give Buffer, and flags rows with missing fields or text that does not fit.
 """
-import argparse, html, json, pathlib, sys
+import argparse, html, json, pathlib, re, sys
 
 ROOT = pathlib.Path(__file__).resolve().parent
 TEMPLATES = ROOT / "templates"
@@ -27,6 +27,7 @@ ICONS = {
     "%CHECK%": '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#141414" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
     "%CHECK_SM%": '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#141414" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
     "%CROSS%": '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4D4A44" stroke-width="3.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+    "%ARROW%": '<svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#141414" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h15M13 6l6 6-6 6"/></svg>',
     "%BOOKMARK%": '<svg width="30" height="34" viewBox="0 0 20 24" fill="#141414"><path d="M2 2.5C2 1.7 2.7 1 3.5 1h13c.8 0 1.5.7 1.5 1.5V23l-8-6-8 6z"/></svg>',
 }
 
@@ -35,6 +36,12 @@ REQUIRED = {
     "checklist": COMMON + [f"Poin {i}" for i in range(1, 6)],
     "langkah": COMMON + [f"Poin {i}" for i in range(1, 6)],
     "perbandingan": COMMON + ["Label kiri", "Label kanan"]
+    + [f"Kiri {i}" for i in range(1, 5)] + [f"Kanan {i}" for i in range(1, 5)],
+    # Layout use case. "Rumus" dan "Tips" opsional di contoh; "Tips" opsional di pola.
+    "contoh": COMMON + ["Label kiri", "Label kanan"]
+    + [f"Kiri {i}" for i in range(1, 5)] + [f"Kanan {i}" for i in range(1, 5)],
+    # Tulis *kata* di sel Kanan untuk memberi sorotan.
+    "pola": COMMON + ["Rumus"]
     + [f"Kiri {i}" for i in range(1, 5)] + [f"Kanan {i}" for i in range(1, 5)],
 }
 
@@ -54,9 +61,13 @@ def image_id(row):
 
 
 def fill(template, row):
-    out = template
+    out = re.sub(r"%IF ([^%]+)%(.*?)%END%",
+                 lambda m: m.group(2) if row.get(m.group(1)) else "", template, flags=re.S)
     for key, val in row.items():
-        out = out.replace("{{" + key + "}}", html.escape(val))
+        esc = html.escape(val)
+        # Slot {{*Kolom}} mengubah *kata* menjadi sorotan; slot biasa menampilkan teks apa adanya.
+        out = out.replace("{{*" + key + "}}", re.sub(r"\*(.+?)\*", r"<mark>\1</mark>", esc))
+        out = out.replace("{{" + key + "}}", esc)
     for key, svg in ICONS.items():
         out = out.replace(key, svg)
     return out
